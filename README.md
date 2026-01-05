@@ -53,15 +53,12 @@ Le LSTM agit donc comme un **filtre de qualité**, et non comme un modèle direc
 
 ### 3️⃣ Définition du succès (label HIT)
 
-Un trade est considéré comme **gagnant (HIT = 1)** si, dans les **5 bougies suivantes** :
+Un trade est considéré comme **gagnant (HIT = 1)** si, dans les **36 bougies suivantes** :
 
-- **LONG** → le **prix maximum futur** dépasse le prix d’entrée
-- **SHORT** → le **prix minimum futur** est inférieur au prix d’entrée
+- Le trade touche le TP avant le SL
+- OU termine avec un PnL > 0 si ni SL ni TP ne sont touchés
 
 Sinon, le trade est considéré comme **perdant (HIT = 0)**.
-
-> Aucun SL/TP n’est utilisé à ce stade.  
-> Le modèle apprend la **qualité intrinsèque du setup**, indépendamment du money management.
 
 ---
 
@@ -128,6 +125,18 @@ STEP_SIZE = 300 bougies
 
 ---
 
+## Optimisation de SL / TP
+
+Une étape clé de la stratégie consiste à optimiser les paramètres de Stop Loss (SL) et Take Profit (TP) afin d’aligner la performance du modèle avec des règles d’exécution réalistes. Pour cela, une grid search SL/TP est réalisée sur l’ensemble des trades générés par le modèle, en simulant systématiquement les sorties de position sur un horizon fixe de bougies futures. Chaque combinaison SL/TP est évaluée à l’aide de métriques de trading robustes telles que l’expectancy (en pips), le profit factor, le taux de réussite, ainsi que le drawdown maximal. Cette approche permet d’identifier les couples SL/TP offrant le meilleur compromis entre rendement et risque, et d’éviter toute sur-optimisation liée à une simple maximisation du taux de succès. Les heatmaps SL/TP constituent un outil visuel central pour analyser la stabilité des performances et sélectionner un couple SL/TP exploitable en conditions réelles.
+
+---
+
+## Stratégie de réentraînement avec SL / TP optimisés
+
+Une fois un couple SL/TP optimal identifié, celui-ci est intégré directement dans la phase de labellisation des données lors du réentraînement du modèle. Le problème d’apprentissage devient alors explicitement orienté vers la rentabilité réelle : un trade est labellisé comme gagnant uniquement s’il aurait généré un PnL positif selon ce SL/TP, dans une fenêtre temporelle définie. Cette stratégie garantit une cohérence totale entre l’objectif du modèle, les règles de backtest et l’exécution en production. Le réentraînement est effectué de manière walk-forward, sur des fenêtres glissantes de données, afin de maintenir l’adaptation du modèle aux conditions de marché changeantes tout en limitant les biais temporels. Ainsi, le modèle n’apprend plus des patterns abstraits de direction, mais des configurations de marché statistiquement favorables à un trade profitable selon une gestion du risque prédéfinie.
+
+---
+
 ## ✅ Conclusions principales
 
 - Le **LSTM n’est pas un modèle directionnel**, mais un **filtre probabiliste**.
@@ -142,7 +151,6 @@ STEP_SIZE = 300 bougies
 
 ## 🚀 Prochaines étapes possibles
 
-- Optimisation **SL / TP** sur les trades filtrés
 - Analyse du **drawdown**, de l’expectancy et du profit factor
 - Calibration dynamique du seuil LSTM
 - Passage en **paper trading / live trading**
